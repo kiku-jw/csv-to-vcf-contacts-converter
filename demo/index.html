@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CSV to VCF Contacts Converter</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Browser-local contact conversion</p>
+        <h1>CSV to VCF Contacts Converter</h1>
+        <p class="lede">
+          Convert CSV contacts into an iPhone, Android, or Google Contacts compatible VCF file.
+          Your file stays in this browser session.
+        </p>
+      </section>
+
+      <section class="tool" aria-label="Contact converter">
+        <div class="upload" id="dropZone">
+          <input id="fileInput" type="file" accept=".csv,.vcf,text/csv,text/vcard,text/x-vcard">
+          <div>
+            <strong>Drop a CSV or VCF file here</strong>
+            <span>or choose a file from your computer</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="sampleButton" type="button">Load sample CSV</button>
+          <button id="downloadVcfButton" type="button" disabled>Download VCF</button>
+          <button id="downloadCsvButton" type="button" disabled>Download clean CSV</button>
+        </div>
+
+        <div id="status" class="status" role="status">No file loaded.</div>
+
+        <div class="grid">
+          <section class="panel">
+            <h2>Summary</h2>
+            <dl id="summaryList" class="summary-list"></dl>
+          </section>
+
+          <section class="panel">
+            <h2>Warnings</h2>
+            <ul id="warningList" class="warning-list"></ul>
+          </section>
+        </div>
+
+        <section class="panel">
+          <h2>Preview</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Organization</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

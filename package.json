@@ -1,0 +1,20 @@
+{
+  "name": "csv-to-vcf-contacts-converter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser-local CSV and VCF contacts converter.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 4173"
+  },
+  "keywords": [
+    "csv",
+    "vcf",
+    "vcard",
+    "contacts",
+    "converter",
+    "browser-local"
+  ],
+  "license": "UNLICENSED"
+}
