@@ -44,3 +44,7 @@ demo/                           Static browser demo
 The static demo imports the converter directly and processes files in the user's browser session. It does not send contacts to a backend.
 
 If this becomes a paid product later, keep the same boundary: preview and conversion stay local, while checkout or license validation can live outside the contact-processing path.
+
+## License
+
+MIT.
