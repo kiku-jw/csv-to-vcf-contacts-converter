@@ -2,6 +2,17 @@
 
 Browser-local contact converter for turning CSV contact exports into VCF/vCard files and normalizing VCF files back into clean CSV.
 
+**[Run the browser-local demo](#run-locally)**
+
+[Docs](#what-it-does) · [Examples](#run-locally) · [Expected output](#expected-output)
+
+Sample output:
+
+```text
+contacts.vcf
+normalized-contacts.csv
+```
+
 The product boundary is intentionally small:
 
 - files are parsed in the browser;
