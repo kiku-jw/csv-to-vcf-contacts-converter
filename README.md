@@ -31,6 +31,14 @@ Then open:
 http://localhost:4173/demo/
 ```
 
+## Expected Output
+
+- `npm test` runs the converter test suite.
+- The browser demo converts CSV contacts into `.vcf` output and can normalize
+  VCF input back into CSV.
+- The conversion happens in the browser session; contacts are not uploaded to a
+  backend.
+
 ## Repository Layout
 
 ```text
