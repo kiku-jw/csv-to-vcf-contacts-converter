@@ -1,8 +1,13 @@
 # CSV to VCF Contacts Converter
 
+> **Archived:** the browser-local converter is now maintained as part of
+> [kikuai.dev](https://kikuai.dev/csv-to-vcf-contacts-converter/). This
+> repository preserves the original standalone implementation and history; it
+> no longer receives independent product updates.
+
 Browser-local contact converter for turning CSV contact exports into VCF/vCard files and normalizing VCF files back into clean CSV.
 
-**[Run the browser-local demo](#run-locally)**
+**[Open the browser-local converter](https://kikuai.dev/csv-to-vcf-contacts-converter/)**
 
 [Docs](#what-it-does) · [Examples](#run-locally) · [Expected output](#expected-output)
 
