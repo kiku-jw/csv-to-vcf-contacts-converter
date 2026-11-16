@@ -91,45 +91,49 @@ function parseDelimitedRows(text, delimiter) {
   const rows = []
   let row = []
   let cell = ''
-  let insideQuotes = false
+  let state = 'start'
   const source = String(text || '').replace(/^\uFEFF/, '')
+  const quoteError = () => new Error(`CSV record ${rows.length + 1}, column ${row.length + 1} has an invalid quote. Quote the entire field and double embedded quotes.`)
 
   for (let index = 0; index < source.length; index += 1) {
     const char = source[index]
     const next = source[index + 1]
-
-    if (insideQuotes && char === '"' && next === '"') {
-      cell += '"'
-      index += 1
+    if (state === 'quoted') {
+      if (char === '"') {
+        if (next === '"') { cell += '"'; index += 1 }
+        else state = 'closed'
+      } else cell += char
       continue
     }
-
     if (char === '"') {
-      insideQuotes = !insideQuotes
+      if (state !== 'start') throw quoteError()
+      state = 'quoted'
       continue
     }
-
-    if (!insideQuotes && char === delimiter) {
+    if (char === delimiter) {
       row.push(cell)
       cell = ''
+      state = 'start'
       continue
     }
-
-    if (!insideQuotes && (char === '\n' || char === '\r')) {
+    if (char === '\n' || char === '\r') {
       if (char === '\r' && next === '\n') index += 1
       row.push(cell)
       rows.push(row)
       row = []
       cell = ''
+      state = 'start'
       continue
     }
-
+    if (state === 'closed') throw quoteError()
     cell += char
+    state = 'unquoted'
   }
-
+  if (state === 'quoted') {
+    throw new Error(`CSV record ${rows.length + 1}, column ${row.length + 1} has an unclosed quoted field. Close the quote before exporting.`)
+  }
   row.push(cell)
   rows.push(row)
-
   return rows.filter((cells) => cells.some((value) => cleanValue(value)))
 }
 
@@ -137,7 +141,10 @@ function parseCsv(text) {
   const delimiter = detectDelimiter(text)
   const rows = parseDelimitedRows(text, delimiter)
   const headers = rows[0] ? rows[0].map((header) => cleanValue(header)) : []
-  const dataRows = rows.slice(1).map((row) => {
+  const dataRows = rows.slice(1).map((row, rowIndex) => {
+    if (row.length > headers.length) {
+      throw new Error(`CSV record ${rowIndex + 2} has ${row.length} fields; the header has ${headers.length}. Fix the row before exporting.`)
+    }
     const normalized = []
     for (let index = 0; index < headers.length; index += 1) {
       normalized.push(cleanValue(row[index]))
@@ -440,6 +447,7 @@ export function parseContactsText(options) {
 
 function escapeVcardValue(value) {
   return cleanValue(value)
+    .replace(/\r\n?/g, '\n')
     .replace(/\\/g, '\\\\')
     .replace(/\n/g, '\\n')
     .replace(/,/g, '\\,')
@@ -447,17 +455,26 @@ function escapeVcardValue(value) {
 }
 
 function foldVcardLine(line) {
-  const maxLength = 74
-  if (line.length <= maxLength) return line
+  const maxOctets = 75
+  const encoder = new TextEncoder()
   const chunks = []
-  let rest = line
+  let current = ''
+  let currentOctets = 0
 
-  while (rest.length > maxLength) {
-    chunks.push(rest.slice(0, maxLength))
-    rest = ` ${rest.slice(maxLength)}`
+  // Iterate code points so a fold cannot split a surrogate pair. The leading
+  // continuation space also counts toward the physical line's UTF8 limit.
+  for (const character of line) {
+    const octets = encoder.encode(character).length
+    if (currentOctets + octets > maxOctets) {
+      chunks.push(current)
+      current = ' '
+      currentOctets = 1
+    }
+    current += character
+    currentOctets += octets
   }
 
-  chunks.push(rest)
+  chunks.push(current)
   return chunks.join('\r\n')
 }
 
