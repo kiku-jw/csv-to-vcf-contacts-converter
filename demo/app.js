@@ -16,6 +16,7 @@ const warningList = document.querySelector('#warningList')
 const previewBody = document.querySelector('#previewBody')
 
 let currentResult = null
+let readGeneration = 0
 
 const sampleCsv = [
   'First Name,Last Name,Mobile,Email,Company,Title,Notes',
@@ -107,9 +108,22 @@ function parseText(fileName, text) {
 
 function readFile(file) {
   if (!file) return
+  const generation = ++readGeneration
+  currentResult = null
+  setDownloadState(false)
+  clearNode(summaryList)
+  clearNode(warningList)
+  clearNode(previewBody)
+  setStatus(`Reading ${file.name}…`)
   const reader = new FileReader()
-  reader.addEventListener('load', () => parseText(file.name, String(reader.result || '')))
-  reader.addEventListener('error', () => setStatus('Could not read the selected file.', 'error'))
+  reader.addEventListener('load', () => {
+    if (generation !== readGeneration) return
+    parseText(file.name, String(reader.result || ''))
+  })
+  reader.addEventListener('error', () => {
+    if (generation !== readGeneration) return
+    setStatus('Could not read the selected file.', 'error')
+  })
   reader.readAsText(file)
 }
 
@@ -128,6 +142,7 @@ fileInput.addEventListener('change', () => {
 })
 
 sampleButton.addEventListener('click', () => {
+  readGeneration += 1
   parseText('sample-contacts.csv', sampleCsv)
 })
 
