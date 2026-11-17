@@ -277,11 +277,10 @@ function unfoldVcardLines(text) {
 }
 
 function unescapeVcardValue(value) {
+  // Decode each escape once: an escaped backslash cannot start another escape.
   return cleanValue(value)
-    .replace(/\\n/gi, '\n')
-    .replace(/\\,/g, ',')
-    .replace(/\\;/g, ';')
-    .replace(/\\\\/g, '\\')
+    .replace(/\\([nN,;\\])/g, (_, escaped) =>
+      escaped === 'n' || escaped === 'N' ? '\n' : escaped)
 }
 
 function splitVcardValue(value) {
