@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  decodeContactsBytes,
   exportContactsToCsv,
   exportContactsToVcf,
   parseContactsText,
@@ -85,4 +86,21 @@ test('limits export to the first 10 contacts when a limit is supplied', () => {
 
   assert.equal((sample.match(/BEGIN:VCARD/g) || []).length, 10)
   assert.equal((full.match(/BEGIN:VCARD/g) || []).length, 12)
+})
+
+test('decodes Unicode without silently repairing legacy or corrupt bytes', () => {
+  const input = 'Name,Notes\r\nМарія Бойко,Перша зустріч 😀\r\n'
+  const utf8 = Buffer.from(input, 'utf8')
+  const utf16 = Buffer.from(input, 'utf16le')
+  assert.equal(decodeContactsBytes(utf8), input)
+  assert.equal(decodeContactsBytes(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), utf8])), input)
+  assert.equal(decodeContactsBytes(Buffer.concat([Buffer.from([0xff, 0xfe]), utf16])), input)
+  assert.equal(decodeContactsBytes(Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(utf16).swap16()])), input)
+  for (const bad of [
+    Buffer.from([0xcc, 0xe0, 0xf0, 0xb3, 0xff]),
+    Buffer.from([0xff, 0xfe, 0x41]),
+    Buffer.from([0xff, 0xfe, 0, 0, 0x41, 0, 0, 0]),
+  ]) {
+    assert.throws(() => decodeContactsBytes(bad), /Save this file as UTF-8 CSV or VCF/)
+  }
 })
