@@ -1,6 +1,7 @@
 import {
   exportContactsToCsv,
   exportContactsToVcf,
+  decodeContactsBytes,
   parseContactsText,
   summarizeContactsResult,
 } from '../src/contacts-converter.js'
@@ -118,13 +119,17 @@ function readFile(file) {
   const reader = new FileReader()
   reader.addEventListener('load', () => {
     if (generation !== readGeneration) return
-    parseText(file.name, String(reader.result || ''))
+    try {
+      parseText(file.name, decodeContactsBytes(reader.result))
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not read the selected file.', 'error')
+    }
   })
   reader.addEventListener('error', () => {
     if (generation !== readGeneration) return
     setStatus('Could not read the selected file.', 'error')
   })
-  reader.readAsText(file)
+  reader.readAsArrayBuffer(file)
 }
 
 function downloadText(fileName, text, type) {

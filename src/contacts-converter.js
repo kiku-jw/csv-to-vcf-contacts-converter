@@ -404,6 +404,23 @@ function detectFileType(fileName, text) {
   return 'csv'
 }
 
+export function decodeContactsBytes(buffer) {
+  const bytes = new Uint8Array(buffer)
+  const errorMessage = 'Could not decode the contact file. Save this file as UTF-8 CSV or VCF and try again.'
+  let encoding = 'utf-8'
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+    if (bytes[2] === 0 && bytes[3] === 0) throw new Error(errorMessage)
+    encoding = 'utf-16le'
+  } else if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    encoding = 'utf-16be'
+  }
+  try {
+    return new TextDecoder(encoding, { fatal: true }).decode(bytes)
+  } catch {
+    throw new Error(errorMessage)
+  }
+}
+
 export function parseContactsText(options) {
   const fileName = options?.fileName || 'contacts'
   const text = options?.text || ''

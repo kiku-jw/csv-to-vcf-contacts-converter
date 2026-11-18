@@ -19,8 +19,8 @@ test('actual demo module clears previous export after each rejected CSV', async 
     constructor() { readers.push(this) }
     events = {}
     addEventListener(name, fn) { this.events[name] = fn }
-    readAsText(file) { this.file = file }
-    complete() { this.result = this.file.text; this.events.load() }
+    readAsArrayBuffer(file) { this.file = file }
+    complete() { this.result = this.file.bytes ?? new TextEncoder().encode(this.file.text).buffer; this.events.load() }
   }
   try {
     await import('../demo/app.js')
@@ -53,6 +53,13 @@ test('actual demo module clears previous export after each rejected CSV', async 
     pending.events.error()
     assertNoExport()
     assert.equal(nodes.get('#status').dataset.kind, 'error')
+
+    nodes.get('#sampleButton').events.click()
+    nodes.get('#fileInput').files = [{name: 'Legacy.csv', bytes: Uint8Array.from([0xff]).buffer}]
+    nodes.get('#fileInput').events.change()
+    readers.at(-1).complete()
+    assertNoExport()
+    assert.match(nodes.get('#status').textContent, /Save this file as UTF-8 CSV or VCF/)
 
     const old = select('Old')
     const newest = select('Newest')
