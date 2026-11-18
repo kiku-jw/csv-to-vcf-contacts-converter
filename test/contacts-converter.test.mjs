@@ -32,6 +32,30 @@ test('parses CSV contacts, maps common fields, and exports VCF/CSV locally', () 
   assert.match(exportedCsv, /Maya Chen,Maya,Chen/)
 })
 
+test('exports numbered phone and email values without importing their labels', () => {
+  const csv = [
+    'First Name,Last Name,Phone 1 - Label,Phone 1 - Value,Phone 2 - Label,Phone 2 - Value,E-mail 1 - Type,E-mail 1 - Value',
+    'Ірина,Коваль,Mobile,+1 202 555 0101,Work,+1 202 555 0199,Work,iryna@example.invalid',
+    'Μαρία,Παππά,Mobile,+1 202 555 0102,Work,+1 202 555 0199,Work,maria@example.invalid',
+    'Ірина,Коваль,Mobile,+1 202 555 0101,,,Work,iryna@example.invalid',
+  ].join('\n')
+  const result = parseContactsText({ fileName: 'training-roster.csv', text: csv })
+  assert.equal(result.mapping.phone, 'Phone 1 - Value')
+  assert.equal(result.mapping.email, 'E-mail 1 - Value')
+  assert.deepEqual(result.contacts.map(contact => contact.phones), [
+    ['+1 202 555 0101', '+1 202 555 0199'],
+    ['+1 202 555 0102', '+1 202 555 0199'],
+    ['+1 202 555 0101'],
+  ])
+  assert.deepEqual(result.contacts.map(contact => contact.emails), [
+    ['iryna@example.invalid'], ['maria@example.invalid'], ['iryna@example.invalid'],
+  ])
+  assert.deepEqual(result.warnings
+    .filter(warning => warning.code === 'possible-duplicate')
+    .map(warning => warning.detail), ['Rows 2 and 4'])
+  assert.doesNotMatch(exportContactsToVcf(result.contacts), /^(?:TEL|EMAIL)[^:\r\n]*:(?:Mobile|Work)\r?$/m)
+})
+
 test('detects semicolon CSV, duplicate contacts, and unmapped columns', () => {
   const csv = [
     'Name;Phone;Email;Secret Column',

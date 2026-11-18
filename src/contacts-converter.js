@@ -15,8 +15,8 @@ const FIELD_ALIASES = {
   fullName: ['name', 'full name', 'display name', 'contact name', 'fn'],
   firstName: ['first name', 'given name', 'firstname', 'givenname', 'first'],
   lastName: ['last name', 'family name', 'surname', 'lastname', 'familyname', 'last'],
-  phone: ['phone', 'phone number', 'mobile', 'cell', 'telephone', 'tel', 'primary phone', 'phone 1 - value'],
-  email: ['email', 'e-mail', 'mail', 'email address', 'e-mail address', 'email 1 - value'],
+  phone: ['phone', 'phone number', 'mobile', 'cell', 'telephone', 'tel', 'primary phone', 'phone 1 value'],
+  email: ['email', 'e-mail', 'mail', 'email address', 'e-mail address', 'email 1 value', 'e mail 1 value'],
   organization: ['organization', 'organisation', 'company', 'org', 'company name'],
   title: ['title', 'job title', 'position', 'role'],
   address: ['address', 'street', 'postal address', 'home address', 'business address'],
@@ -30,6 +30,10 @@ function normalizeHeader(value) {
     .toLowerCase()
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ')
+}
+
+function isContactLabelHeader(normalizedHeader) {
+  return /^(?:phone|e ?mail)(?: \d+)? (?:label|type)$/.test(normalizedHeader)
 }
 
 function cleanValue(value) {
@@ -160,7 +164,7 @@ function getDefaultCsvMapping(headers) {
   const normalizedHeaders = headers.map((header) => ({
     original: header,
     normalized: normalizeHeader(header),
-  }))
+  })).filter(({ normalized }) => !isContactLabelHeader(normalized))
 
   for (const field of CONTACT_FIELDS) {
     const aliases = FIELD_ALIASES[field.key] || []
@@ -199,6 +203,7 @@ function collectAliasValues(headers, row, fieldKey, mappedHeader) {
     const header = headers[index]
     if (header === mappedHeader) continue
     const normalized = normalizeHeader(header)
+    if (isContactLabelHeader(normalized)) continue
     const matches = aliases.some((alias) => normalized === alias || normalized.includes(alias))
     if (matches) values.push(row[index])
   }
