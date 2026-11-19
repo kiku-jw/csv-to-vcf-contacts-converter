@@ -272,13 +272,62 @@ function buildContactsFromCsv(parsed, mapping) {
   return { contacts, warnings, unmappedColumns }
 }
 
+function isQuotedPrintableVcardProperty(header) {
+  return /(?:^|;)ENCODING=(?:"QUOTED-PRINTABLE"|QUOTED-PRINTABLE)(?:;|$)/i.test(header)
+}
+
 function unfoldVcardLines(text) {
-  return String(text || '')
-    .replace(/\r\n[ \t]/g, '')
-    .replace(/\n[ \t]/g, '')
-    .replace(/\r/g, '\n')
-    .split('\n')
-    .map((line) => line.trimEnd())
+  const lines = []
+  let quotedPrintable = false
+
+  for (const line of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+    const last = lines.length - 1
+    const previous = lines[last]?.trimEnd()
+    if (quotedPrintable && previous?.endsWith('=')) {
+      const nextProperty = /^(?:[\w-]+\.)?(?:BEGIN|END|VERSION|FN|N|TEL|EMAIL|ORG|TITLE|ADR|NOTE|URL)(?:;[^:]*)?:/i
+      if (!line.trim() || nextProperty.test(line) || /^\s*(?:BEGIN|END):VCARD\s*$/i.test(line)) {
+        throw new Error('Incomplete quoted-printable vCard field. Re-export the original contact file before converting.')
+      }
+      lines[last] = previous.slice(0, -1) + line
+    } else if (last >= 0 && /^[ \t]/.test(line)) {
+      lines[last] += line.slice(1)
+      quotedPrintable = isQuotedPrintableVcardProperty(lines[last].split(':', 1)[0])
+    } else {
+      lines.push(line)
+      quotedPrintable = isQuotedPrintableVcardProperty(line.split(':', 1)[0])
+    }
+  }
+
+  return lines.map((line) => line.trimEnd())
+}
+
+function decodeQuotedPrintableVcardValue(value, header) {
+  const charset = header.match(/(?:^|;)CHARSET="?([^;"]+)/i)?.[1]
+  if (charset && !/^UTF-?8$/i.test(charset)) {
+    throw new Error('Unsupported quoted-printable vCard character set. Re-export the contacts as a UTF-8 vCard.')
+  }
+
+  const bytes = []
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] === '=') {
+      const hex = value.slice(index + 1, index + 3)
+      if (!/^[a-f\d]{2}$/i.test(hex)) {
+        throw new Error('Incomplete quoted-printable vCard field. Re-export the original contact file before converting.')
+      }
+      bytes.push(Number.parseInt(hex, 16))
+      index += 2
+    } else {
+      const byte = value.charCodeAt(index)
+      if (byte > 127) throw new Error('Invalid quoted-printable vCard field. Re-export the original contact file before converting.')
+      bytes.push(byte)
+    }
+  }
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes))
+  } catch {
+    throw new Error('Invalid UTF-8 in a quoted-printable vCard field. Re-export the original contact file before converting.')
+  }
 }
 
 function unescapeVcardValue(value) {
@@ -371,7 +420,10 @@ function parseVcard(text) {
     }
 
     const left = line.slice(0, colonIndex)
-    const rawValue = line.slice(colonIndex + 1)
+    const encodedValue = line.slice(colonIndex + 1)
+    const rawValue = isQuotedPrintableVcardProperty(left)
+      ? decodeQuotedPrintableVcardValue(encodedValue, left)
+      : encodedValue
     const rawName = left.split(';')[0] || ''
     const name = rawName.includes('.') ? rawName.split('.').pop().toUpperCase() : rawName.toUpperCase()
     const value = unescapeVcardValue(rawValue)
