@@ -128,3 +128,28 @@ test('decodes Unicode without silently repairing legacy or corrupt bytes', () =>
     assert.throws(() => decodeContactsBytes(bad), /Save this file as UTF-8 CSV or VCF/)
   }
 })
+
+test('keeps all values under repeated phone and email headers', () => {
+  const data = [
+    'Maya Rivera,+12025550101,+12025550102,maya.work@example.test,maya.home@example.test',
+    'Alex Kim,+12025550101,+12025550103,alex.work@example.test,alex.home@example.test',
+    'Sam Lee,+12025550104,+12025550104,sam@example.test,SAM@example.test',
+  ].join('\n')
+  const expected = [
+    { phones: ['+12025550101', '+12025550102'], emails: ['maya.work@example.test', 'maya.home@example.test'] },
+    { phones: ['+12025550101', '+12025550103'], emails: ['alex.work@example.test', 'alex.home@example.test'] },
+    { phones: ['+12025550104'], emails: ['sam@example.test'] },
+  ]
+  const profiles = ({ contacts }) => contacts.map(({ phones, emails }) => ({ phones, emails }))
+
+  for (const { headers, mapping } of [
+    { headers: 'Name,Phone,Phone,Email,Email' },
+    { headers: 'Name,Desk,Desk,Inbox,Inbox', mapping: { fullName: 'Name', phone: 'Desk', email: 'Inbox' } },
+  ]) {
+    const result = parseContactsText({ fileName: 'training.csv', text: headers + '\n' + data, mapping })
+    assert.deepEqual(profiles(result), expected)
+    assert.deepEqual(profiles(parseContactsText({
+      fileName: 'training.vcf', text: exportContactsToVcf(result.contacts),
+    })), expected)
+  }
+})

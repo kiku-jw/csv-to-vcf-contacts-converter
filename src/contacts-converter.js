@@ -195,16 +195,16 @@ function rowCell(headers, row, headerName) {
 
 function collectAliasValues(headers, row, fieldKey, mappedHeader) {
   const aliases = FIELD_ALIASES[fieldKey] || []
-  const values = []
-
-  if (mappedHeader) values.push(rowCell(headers, row, mappedHeader))
+  const mappedIndex = mappedHeader ? headers.indexOf(mappedHeader) : -1
+  const values = mappedIndex >= 0 ? [row[mappedIndex]] : []
 
   for (let index = 0; index < headers.length; index += 1) {
+    if (index === mappedIndex) continue
     const header = headers[index]
-    if (header === mappedHeader) continue
     const normalized = normalizeHeader(header)
     if (isContactLabelHeader(normalized)) continue
-    const matches = aliases.some((alias) => normalized === alias || normalized.includes(alias))
+    const matches = (mappedIndex >= 0 && header === mappedHeader)
+      || aliases.some((alias) => normalized === alias || normalized.includes(alias))
     if (matches) values.push(row[index])
   }
 
