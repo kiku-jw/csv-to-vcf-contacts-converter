@@ -2,6 +2,20 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { exportContactsToVcf, parseContactsText } from '../src/contacts-converter.js'
 
+test('a vCard marker in a CSV note does not change the file format', () => {
+  const result = parseContactsText({
+    fileName: 'training-roster.csv',
+    text: 'Name,Email,Notes\r\nOksana,oksana@example.test,"Pasted legacy card:\r\nBEGIN:VCARD\r\nEND:VCARD"\r\nMaksym,maksym@example.test,"Keep this contact."',
+  })
+  assert.equal(result.sourceType, 'csv')
+  assert.deepEqual(result.contacts.map((contact) => contact.fullName), ['Oksana', 'Maksym'])
+  assert.match(result.contacts[0].notes, /BEGIN:VCARD\r?\nEND:VCARD$/)
+
+  const reopened = parseContactsText({ fileName: 'export.txt', text: '\n' + exportContactsToVcf(result.contacts) })
+  assert.equal(reopened.sourceType, 'vcf')
+  assert.deepEqual(reopened.contacts.map((contact) => contact.fullName), ['Oksana', 'Maksym'])
+})
+
 test('prevents a partial export when one vCard block is truncated', () => {
   const roster = parseContactsText({
     fileName: 'roster.csv',

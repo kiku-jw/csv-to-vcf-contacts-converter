@@ -410,7 +410,7 @@ function parseVcard(text) {
 
 function detectFileType(fileName, text) {
   const lowerName = String(fileName || '').toLowerCase()
-  if (lowerName.endsWith('.vcf') || /BEGIN:VCARD/i.test(text)) return 'vcf'
+  if (lowerName.endsWith('.vcf') || /^\s*BEGIN:VCARD[ \t]*(?:[\r\n]|$)/i.test(text)) return 'vcf'
   return 'csv'
 }
 
