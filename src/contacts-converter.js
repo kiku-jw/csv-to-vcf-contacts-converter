@@ -343,6 +343,9 @@ function parseVcard(text) {
     if (!line) return
     const upper = line.toUpperCase()
     if (upper === 'BEGIN:VCARD') {
+      if (current) {
+        throw new Error(`vCard starting at line ${currentStart} is missing END:VCARD. Re-export the full vCard file before converting.`)
+      }
       current = emptyContact(index + 1)
       currentStart = index + 1
       return
@@ -391,7 +394,9 @@ function parseVcard(text) {
     else if (name === 'URL') current.urls.push(value)
   })
 
-  if (current) warnings.push(makeWarning('unclosed-vcard', 'Unclosed vCard block', `Started at line ${currentStart}`))
+  if (current) {
+    throw new Error(`vCard starting at line ${currentStart} is missing END:VCARD. Re-export the full vCard file before converting.`)
+  }
 
   contacts.forEach((contact, index) => {
     if (!contact.fullName) warnings.push(makeWarning('missing-name', 'Missing name', `vCard ${index + 1}`))

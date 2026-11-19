@@ -2,6 +2,24 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { exportContactsToVcf, parseContactsText } from '../src/contacts-converter.js'
 
+test('prevents a partial export when one vCard block is truncated', () => {
+  const roster = parseContactsText({
+    fileName: 'roster.csv',
+    text: 'Name,Phone\nOksana Petrenko,+380441234567\nMaksym Bondar,+380441234567',
+  })
+  const complete = exportContactsToVcf(roster.contacts)
+  const truncated = complete.replace(/END:VCARD\r\n$/, '')
+  assert.notEqual(truncated, complete)
+  const reopen = (text) => parseContactsText({ fileName: 'roster.vcf', text })
+
+  assert.throws(() => reopen(truncated), /vCard starting at line \d+ is missing END:VCARD/)
+  assert.throws(() => reopen(truncated + complete), /is missing END:VCARD/)
+  assert.deepEqual(reopen(complete).contacts.map((contact) => contact.fullName), [
+    'Oksana Petrenko',
+    'Maksym Bondar',
+  ])
+})
+
 // Decode persisted UTF-8 bytes independently of the converter's vCard parser.
 function decodeProperties(vcf) {
   const bytes = Buffer.from(vcf, 'utf8')
